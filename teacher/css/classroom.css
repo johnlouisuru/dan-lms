@@ -1,0 +1,405 @@
+ @charset "UTF-8";
+ 
+ :root {
+            --primary-color: #1967d2;
+            --secondary-color: #188038;
+            --warning-color: #ea8600;
+            --danger-color: #c5221f;
+        }
+        
+        body {
+            padding-bottom: 70px;
+            background-color: #f5f5f5;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .top-bar {
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 20px;
+            font-weight: 500;
+            color: #5f6368;
+        }
+        
+        .logo i {
+            color: var(--primary-color);
+            font-size: 24px;
+        }
+        
+        .content-area {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        
+        /* Class Cards */
+        .class-card {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            transition: box-shadow 0.3s;
+        }
+        
+        .class-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        .class-header {
+            height: 100px;
+            background: linear-gradient(135deg, var(--primary-color), #1557b0);
+            color: white;
+            padding: 16px;
+            position: relative;
+        }
+        
+        .class-header.green {
+            background: linear-gradient(135deg, var(--secondary-color), #137333);
+        }
+        
+        .class-header.orange {
+            background: linear-gradient(135deg, var(--warning-color), #d56e00);
+        }
+        
+        .class-header.red {
+            background: linear-gradient(135deg, var(--danger-color), #a50e0e);
+        }
+        
+        .class-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .class-section {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .class-body {
+            padding: 16px;
+        }
+        
+        .class-teacher {
+            color: #5f6368;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        
+        .class-action {
+            border-top: 1px solid #e0e0e0;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #5f6368;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        
+        .class-action:hover {
+            background: #f8f9fa;
+        }
+        
+        /* Assignment Card */
+        .assignment-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .assignment-card.todo {
+            border-left-color: var(--info-color);
+        }
+        
+        .assignment-card.done {
+            border-left-color: var(--secondary-color);
+        }
+        
+        .assignment-header {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .assignment-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e8f0fe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            font-size: 20px;
+        }
+        
+        .assignment-info {
+            flex: 1;
+        }
+        
+        .assignment-title {
+            font-weight: 500;
+            color: #202124;
+            margin-bottom: 4px;
+        }
+        
+        .assignment-meta {
+            font-size: 13px;
+            color: #5f6368;
+        }
+        
+        .due-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        
+        .due-badge.urgent {
+            background: #fce8e6;
+            color: var(--danger-color);
+        }
+        
+        .due-badge.upcoming {
+            background: #fef7e0;
+            color: var(--warning-color);
+        }
+        
+        .due-badge.completed {
+            background: #e6f4ea;
+            color: var(--secondary-color);
+        }
+        
+        /* Student List */
+        .student-item {
+            background: #fff;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+        
+        .student-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .student-info {
+            flex: 1;
+        }
+        
+        .student-name {
+            font-weight: 500;
+            color: #202124;
+            margin-bottom: 2px;
+        }
+        
+        .student-email {
+            font-size: 13px;
+            color: #5f6368;
+        }
+        
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            z-index: 1000;
+        }
+        
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            text-decoration: none;
+            color: #5f6368;
+            transition: color 0.2s;
+        }
+        
+        .nav-item i {
+            font-size: 24px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .nav-item span {
+            font-size: 12px;
+            display: block;
+            font-weight: 500;
+        }
+        
+        .nav-item.active {
+            color: var(--primary-color);
+        }
+        
+        .nav-item:hover {
+            color: var(--primary-color);
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #5f6368;
+            margin: 20px 0 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #5f6368;
+        }
+        
+        .empty-state i {
+            font-size: 64px;
+            color: #dadce0;
+            margin-bottom: 16px;
+        }
+        
+        .fab-button {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 999;
+        }
+        
+        .fab-button:hover {
+            background: #1557b0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        
+        @media (min-width: 768px) {
+            .desktop-nav {
+                display: flex !important;
+            }
+        }
+        
+        .desktop-nav {
+            display: none;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .desktop-nav i {
+            font-size: 24px;
+            cursor: pointer;
+            color: #5f6368;
+            transition: color 0.2s;
+        }
+        
+        .desktop-nav i:hover {
+            color: var(--primary-color);
+        }
+
+        /* Facebook Group–like Cover */
+.group-cover {
+    position: relative;
+    height: 260px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 0 0 16px 16px;
+    overflow: hidden;
+}
+
+.group-cover::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.55));
+}
+
+.group-cover-content {
+    position: absolute;
+    bottom: 20px;
+    left: 24px;
+    z-index: 2;
+    color: #fff;
+}
+
+.group-cover h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.group-cover p {
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+    opacity: 0.95;
+}
+
+.group-meta {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.group-actions {
+    position: absolute;
+    bottom: 20px;
+    right: 24px;
+    z-index: 2;
+}
+
+@media (max-width: 768px) {
+    .group-cover {
+        height: 220px;
+    }
+    .group-actions {
+        position: static;
+        padding: 12px;
+    }
+}
+
+@media (max-width: 576px) {
+    .logout-text {
+        display: none;
+    }
+}
