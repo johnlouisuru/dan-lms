@@ -48,6 +48,7 @@ jobs:
             **/.git*/**
             **/node_modules/**
             **/.env
+            vendor/**
             **/vendor/**
             **/db-config/**
             **/.vscode/**
