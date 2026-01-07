@@ -7,6 +7,13 @@
             <span class="fw-semibold"><?= $_ENV['PAGE_HEADER'] ?></span>
         </div>
 
+        <!-- Dashboard Button (Always Visible) -->
+        <a href="pages/dashboard"
+            class="btn btn-outline-info btn-sm d-flex gap-2">
+                <i class="bi bi-bar-chart-line"></i>
+                <span class="dashboard-text">Dashboard</span>
+        </a>
+
         <!-- Logout Button (Always Visible) -->
         <button
             class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"

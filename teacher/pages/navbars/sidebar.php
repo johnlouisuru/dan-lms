@@ -79,18 +79,23 @@ $getHolder = !empty($_GET) ? $_GET : [];
             <span class="nav-link-text ms-1">All Sections</span>
           </a>
         </li> -->
-        <li class="nav-item">
+        <!-- <li class="nav-item">
           <a class="nav-link <?= navActive($currentPath, 'Stages') ?>" href="stages">
             <i class="material-symbols-rounded opacity-5">files</i>
             <span class="nav-link-text ms-1">All Stages</span>
           </a>
-        </li>
+        </li> -->
       </ul>
     </div>
     <div class="sidenav-footer position-absolute w-100 bottom-0 ">
-      <div class="mx-3">
+    <div class="mx-3">
         <!-- <a class="btn btn-outline-dark mt-4 w-100" href="https://www.creative-tim.com/learning-lab/bootstrap/overview/material-dashboard?ref=sidebarfree" type="button">Documentation</a> -->
-        <a class="btn bg-gradient-dark w-100" href="../logout/" type="button">Logout</a>
+        <a class="btn bg-gradient-info w-100" href="../classroom" type="button">Back to Classroom</a>
+      </div>
+      <div class="mx-3">
+      
+        <!-- <a class="btn btn-outline-dark mt-4 w-100" href="https://www.creative-tim.com/learning-lab/bootstrap/overview/material-dashboard?ref=sidebarfree" type="button">Documentation</a> -->
+        <a class="btn bg-gradient-dark w-100" href="../logout/" type="button"><i class="bi bi-box-arrow-right text text-danger">Logout</i> </a>
       </div>
     </div>
   </aside>
