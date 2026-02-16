@@ -7,8 +7,8 @@
                   document.write(new Date().getFullYear())
                 </script>,
                 made with <i class="fa fa-heart">♡</i> by
-                <a href="#" class="font-weight-bold" target="_blank">Teacher SS.</a>
-                for a better welding simulation.
+                <a href="#" class="font-weight-bold" target="_blank">Teacher DDV.</a>
+                for a better ALS experience.
               </div>
             </div>
             <div class="col-lg-6">
