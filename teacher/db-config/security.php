@@ -139,9 +139,26 @@ function authenticate_email($db, $sql, $email){
 }
 
 function secure_query($db, $sql, $params) {
-    $stmt = $db->prepare($sql);
-    $stmt->execute($params);
-    return $stmt;
+    try {
+        $stmt = $db->prepare($sql);
+        
+        // Debug: Log the query and params if in development mode
+        if (defined('DEVELOPMENT_MODE') && DEVELOPMENT_MODE) {
+            error_log("SQL Query: " . $sql);
+            error_log("SQL Params: " . print_r($params, true));
+        }
+        
+        $stmt->execute($params);
+        return $stmt;
+    } catch (PDOException $e) {
+        // Log the error with details
+        error_log("SQL Error: " . $e->getMessage());
+        error_log("Failed Query: " . $sql);
+        error_log("Failed Params: " . print_r($params, true));
+        
+        // Re-throw with more context
+        throw new Exception("Database error: " . $e->getMessage());
+    }
 }
 
 function secure_query_no_params($db, $sql) {

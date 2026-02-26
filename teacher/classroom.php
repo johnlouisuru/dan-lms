@@ -23,8 +23,8 @@ if (isLoggedIn() && !isProfileComplete()) {
 
 // If logged in but profile incomplete, redirect to complete profile
 if (!isLoggedIn()) {
-    header('Location: logout/');
-    exit;
+    // header('Location: logout/');
+    // exit;
 }
 
 ?>
@@ -502,9 +502,13 @@ if (!isLoggedIn()) {
 
     <!-- Bottom Navigation -->
     <div class="bottom-nav">
-        <a href="#" class="nav-item active" >
+        <a href="#" class="nav-item active">
             <i class="bi bi-chat-left-text"></i>
             <span>Newsfeed</span>
+        </a>
+        <a href="e-module" class="nav-item" >
+            <i class="bi bi-journal-bookmark-fill"></i>
+            <span>E-Modules</span>
         </a>
         <a href="classwork" class="nav-item" >
             <i class="bi bi-journal-text"></i>

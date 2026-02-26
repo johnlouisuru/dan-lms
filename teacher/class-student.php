@@ -142,20 +142,24 @@ function avatarGradient($seed) {
   
 
     <!-- Bottom Navigation -->
-    <div class="bottom-nav">
-        <a href="classroom" class="nav-item" >
-            <i class="bi bi-chat-left-text"></i>
-            <span>Newsfeed</span>
-        </a>
-        <a href="classwork" class="nav-item" >
-            <i class="bi bi-journal-text"></i>
-            <span>ClassWork</span>
-        </a>
-        <a href="#" class="nav-item active" >
-            <i class="bi bi-people-fill"></i>
-            <span>Students</span>
-        </a>
-    </div>
+        <div class="bottom-nav">
+            <a href="classroom" class="nav-item">
+                <i class="bi bi-chat-left-text"></i>
+                <span>Newsfeed</span>
+            </a>
+            <a href="e-module" class="nav-item">
+                <i class="bi bi-journal-bookmark-fill"></i>
+                <span>E-Modules</span>
+            </a>
+            <a href="classwork" class="nav-item">
+                <i class="bi bi-journal-text"></i>
+                <span>ClassWork</span>
+            </a>
+            <a href="#" class="nav-item active">
+                <i class="bi bi-people-fill"></i>
+                <span>Students</span>
+            </a>
+        </div>
     <?php 
         // require_once "bars/bottom-bar.php";
     ?>
