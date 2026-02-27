@@ -41,7 +41,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./final/           # Deploy only teacher folder
+          local-dir: ./final/           # Deploy only student final folder
           server-dir: /als/final/  # Change this to your target directory - Test 
           exclude: |
             **/.git*
