@@ -793,9 +793,13 @@ $modules = secure_query_no_params($pdo, $modules_query);
                 <i class="bi bi-chat-left-text"></i>
                 <span>Newsfeed</span>
             </a>
-            <a href="#" class="nav-item active">
+            <a href="e-module" class="nav-item active">
                 <i class="bi bi-journal-bookmark-fill"></i>
                 <span>E-Modules</span>
+            </a>
+            <a href="ane" class="nav-item">
+                <i class="bi bi-pencil-square"></i>
+                <span>Assessment</span>
             </a>
             <a href="classwork" class="nav-item">
                 <i class="bi bi-journal-text"></i>

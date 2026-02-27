@@ -561,6 +561,10 @@ if (!isLoggedIn()) {
                 <i class="bi bi-journal-bookmark-fill"></i>
                 <span>E-Modules</span>
             </a>
+            <a href="ane" class="nav-item">
+                <i class="bi bi-pencil-square"></i>
+                <span>Assessment</span>
+            </a>
             <a href="#" class="nav-item active">
                 <i class="bi bi-journal-text"></i>
                 <span>ClassWork</span>

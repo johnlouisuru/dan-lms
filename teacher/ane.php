@@ -713,6 +713,145 @@ $quizzes = $quizzes_result->fetchAll(PDO::FETCH_ASSOC);
             padding-bottom: 10px;
             border-bottom: 2px solid #667eea;
         }
+
+        /* Add these to your existing styles */
+.quiz-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.05);
+    width: 100%;
+    overflow: hidden;
+}
+
+.quiz-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+}
+
+.quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.quiz-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+    word-break: break-word;
+    flex: 1;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.quiz-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+.quiz-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f8f9fa;
+    padding: 6px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.quiz-meta span i {
+    font-size: 0.9rem;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .quiz-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .quiz-title {
+        font-size: 1.1rem;
+        width: 100%;
+    }
+    
+    .status-badge {
+        align-self: flex-start;
+    }
+    
+    .quiz-meta {
+        gap: 8px;
+    }
+    
+    .quiz-meta span {
+        width: calc(50% - 4px);
+        white-space: normal;
+        word-break: break-word;
+        font-size: 0.8rem;
+        padding: 6px 8px;
+    }
+    
+    .quiz-meta span i {
+        flex-shrink: 0;
+    }
+    
+    .mt-3 {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .mt-3 .btn {
+        width: 100%;
+        margin: 0 !important;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    .quiz-meta span {
+        width: 100%;
+    }
+    
+    .quiz-card {
+        padding: 15px;
+    }
+}
+
+/* For the due date specifically - ensure it doesn't overflow */
+.quiz-meta span:last-child {
+    flex: 0 1 auto;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Better handling for long dates on mobile */
+@media (max-width: 768px) {
+    .quiz-meta span:has(.bi-calendar) {
+        width: 100% !important;
+        justify-content: flex-start;
+    }
+}
     </style>
 </head>
 <body>
@@ -932,7 +1071,7 @@ $quizzes = $quizzes_result->fetchAll(PDO::FETCH_ASSOC);
 
         <!-- Bottom Navigation -->
         <div class="bottom-nav">
-            <a href="newsfeed" class="nav-item">
+            <a href="classroom" class="nav-item">
                 <i class="bi bi-chat-left-text"></i>
                 <span>Newsfeed</span>
             </a>
@@ -943,6 +1082,10 @@ $quizzes = $quizzes_result->fetchAll(PDO::FETCH_ASSOC);
             <a href="ane" class="nav-item active">
                 <i class="bi bi-pencil-square"></i>
                 <span>Assessment</span>
+            </a>
+            <a href="classwork" class="nav-item">
+                <i class="bi bi-journal-text"></i>
+                <span>ClassWork</span>
             </a>
             <a href="class-student" class="nav-item">
                 <i class="bi bi-people-fill"></i>

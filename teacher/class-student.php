@@ -141,7 +141,7 @@ function avatarGradient($seed) {
 
   
 
-    <!-- Bottom Navigation -->
+     <!-- Bottom Navigation -->
         <div class="bottom-nav">
             <a href="classroom" class="nav-item">
                 <i class="bi bi-chat-left-text"></i>
@@ -150,6 +150,10 @@ function avatarGradient($seed) {
             <a href="e-module" class="nav-item">
                 <i class="bi bi-journal-bookmark-fill"></i>
                 <span>E-Modules</span>
+            </a>
+            <a href="ane" class="nav-item">
+                <i class="bi bi-pencil-square"></i>
+                <span>Assessment</span>
             </a>
             <a href="classwork" class="nav-item">
                 <i class="bi bi-journal-text"></i>
