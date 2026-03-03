@@ -79,6 +79,12 @@ $getHolder = !empty($_GET) ? $_GET : [];
             <span class="nav-link-text ms-1">A&E</span>
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link <?= navActive($currentPath, 'Faqs') ?>" href="../faqs">
+            <i class="material-symbols-rounded opacity-5">files</i>
+            <span class="nav-link-text ms-1">FAQs</span>
+          </a>
+        </li>
         <!-- <li class="nav-item">
           <a class="nav-link <?= navActive($currentPath, 'Stages') ?>" href="stages">
             <i class="material-symbols-rounded opacity-5">files</i>
