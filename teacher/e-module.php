@@ -1075,18 +1075,18 @@ $modules = $modules_result->fetchAll(PDO::FETCH_ASSOC);
         <a href="classroom" class="nav-item">
             <i class="bi bi-chat-left-text"></i>
             <span>Newsfeed</span>
+        </a><a href="e-module" class="nav-item active">
+            <i class="bi bi-journal-bookmark-fill"></i>
+            <span>E-Modules</span>
         </a>
-        <a href="classwork" class="nav-item">
-            <i class="bi bi-journal-text"></i>
-            <span>ClassWork</span>
-        </a>
-        <a href="quiz_area" class="nav-item">
+        <a href="ane" class="nav-item">
             <i class="bi bi-pencil-square"></i>
             <span>Assessment</span>
         </a>
-        <a href="e-module" class="nav-item active">
-            <i class="bi bi-journal-bookmark-fill"></i>
-            <span>E-Modules</span>
+        
+        <a href="classwork" class="nav-item">
+            <i class="bi bi-journal-text"></i>
+            <span>ClassWork</span>
         </a>
         <a href="class-student" class="nav-item">
             <i class="bi bi-people-fill"></i>
