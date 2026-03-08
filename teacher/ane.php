@@ -63,92 +63,107 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             exit;
             
         } elseif ($_POST['ajax_action'] === 'save_question') {
-            // Save a question with its options
-            $quiz_id = filter_input(INPUT_POST, 'quiz_id', FILTER_VALIDATE_INT);
-            $question_text = trim($_POST['question_text'] ?? '');
-            $points = filter_input(INPUT_POST, 'points', FILTER_VALIDATE_INT) ?: 1;
-            $options = json_decode($_POST['options'] ?? '[]', true);
-            $correct_option = filter_input(INPUT_POST, 'correct_option', FILTER_VALIDATE_INT);
+    // Save a question with its options and optional image
+    $quiz_id = filter_input(INPUT_POST, 'quiz_id', FILTER_VALIDATE_INT);
+    $question_text = trim($_POST['question_text'] ?? '');
+    $points = filter_input(INPUT_POST, 'points', FILTER_VALIDATE_INT) ?: 1;
+    $options = json_decode($_POST['options'] ?? '[]', true);
+    $correct_option = filter_input(INPUT_POST, 'correct_option', FILTER_VALIDATE_INT);
+    
+    if (!$quiz_id) {
+        throw new Exception('Invalid quiz ID');
+    }
+    
+    if (empty($question_text)) {
+        throw new Exception('Question text is required');
+    }
+    
+    if (count($options) < 2) {
+        throw new Exception('At least 2 options are required');
+    }
+    
+    if ($correct_option === null || $correct_option < 0 || $correct_option >= count($options)) {
+        throw new Exception('Please select a correct answer');
+    }
+    
+    // Handle image upload
+    $image_path = null;
+    if (isset($_FILES['question_image']) && $_FILES['question_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+        try {
+            $image_path = handleImageUpload($_FILES['question_image']);
+        } catch (Exception $e) {
+            throw new Exception('Image upload failed: ' . $e->getMessage());
+        }
+    }
+    
+    // Start transaction
+    $pdo->beginTransaction();
+    
+    try {
+        // Get the next order number
+        $order_query = "SELECT COUNT(*) as count FROM quiz_questions WHERE quiz_id = :quiz_id";
+        $order_params = [':quiz_id' => $quiz_id];
+        $order_result = secure_query($pdo, $order_query, $order_params);
+        $order_row = $order_result->fetch(PDO::FETCH_ASSOC);
+        $order_number = (int)$order_row['count'] + 1;
+        
+        // Insert question with image
+        $question_query = "INSERT INTO quiz_questions (quiz_id, question_text, points, image_attached, order_number) 
+                           VALUES (:quiz_id, :question_text, :points, :image_attached, :order_number)";
+        $question_params = [
+            ':quiz_id' => $quiz_id,
+            ':question_text' => $question_text,
+            ':points' => $points,
+            ':image_attached' => $image_path,
+            ':order_number' => $order_number
+        ];
+        
+        secure_query($pdo, $question_query, $question_params);
+        $question_id = $pdo->lastInsertId();
+        
+        // Insert options (same as before)
+        foreach ($options as $index => $option_text) {
+            $is_correct = ($index == $correct_option) ? 1 : 0;
             
-            if (!$quiz_id) {
-                throw new Exception('Invalid quiz ID');
-            }
+            $option_query = "INSERT INTO quiz_options (question_id, option_text, is_correct, order_number) 
+                             VALUES (:question_id, :option_text, :is_correct, :order_number)";
+            $option_params = [
+                ':question_id' => $question_id,
+                ':option_text' => $option_text,
+                ':is_correct' => $is_correct,
+                ':order_number' => $index + 1
+            ];
             
-            if (empty($question_text)) {
-                throw new Exception('Question text is required');
-            }
-            
-            if (count($options) < 2) {
-                throw new Exception('At least 2 options are required');
-            }
-            
-            if ($correct_option === null || $correct_option < 0 || $correct_option >= count($options)) {
-                throw new Exception('Please select a correct answer');
-            }
-            
-            // Start transaction
-            $pdo->beginTransaction();
-            
-            try {
-                // Get the next order number
-                $order_query = "SELECT COUNT(*) as count FROM quiz_questions WHERE quiz_id = :quiz_id";
-                $order_params = [':quiz_id' => $quiz_id];
-                $order_result = secure_query($pdo, $order_query, $order_params);
-                $order_row = $order_result->fetch(PDO::FETCH_ASSOC);
-                $order_number = (int)$order_row['count'] + 1;
-                
-                // Insert question
-                $question_query = "INSERT INTO quiz_questions (quiz_id, question_text, points, order_number) 
-                                   VALUES (:quiz_id, :question_text, :points, :order_number)";
-                $question_params = [
-                    ':quiz_id' => $quiz_id,
-                    ':question_text' => $question_text,
-                    ':points' => $points,
-                    ':order_number' => $order_number
-                ];
-                
-                secure_query($pdo, $question_query, $question_params);
-                $question_id = $pdo->lastInsertId();
-                
-                // Insert options
-                foreach ($options as $index => $option_text) {
-                    $is_correct = ($index == $correct_option) ? 1 : 0;
-                    
-                    $option_query = "INSERT INTO quiz_options (question_id, option_text, is_correct, order_number) 
-                                     VALUES (:question_id, :option_text, :is_correct, :order_number)";
-                    $option_params = [
-                        ':question_id' => $question_id,
-                        ':option_text' => $option_text,
-                        ':is_correct' => $is_correct,
-                        ':order_number' => $index + 1
-                    ];
-                    
-                    secure_query($pdo, $option_query, $option_params);
-                }
-                
-                // Update total points in final_quizzes
-                $update_points_query = "UPDATE final_quizzes SET total_points = (
-                                            SELECT COALESCE(SUM(points), 0) FROM quiz_questions WHERE quiz_id = :quiz_id1
-                                        ) WHERE id = :quiz_id2";
-                $update_points_params = [
-                    ':quiz_id1' => $quiz_id,
-                    ':quiz_id2' => $quiz_id
-                ];
-                
-                secure_query($pdo, $update_points_query, $update_points_params);
-                
-                // Commit transaction
-                $pdo->commit();
-                
-                echo json_encode(['success' => true, 'question_id' => $question_id]);
-                exit;
-                
-            } catch (Exception $e) {
-                $pdo->rollBack();
-                throw $e;
-            }
-            
-        } elseif ($_POST['ajax_action'] === 'get_questions') {
+            secure_query($pdo, $option_query, $option_params);
+        }
+        
+        // Update total points in final_quizzes
+        $update_points_query = "UPDATE final_quizzes SET total_points = (
+                                    SELECT COALESCE(SUM(points), 0) FROM quiz_questions WHERE quiz_id = :quiz_id1
+                                ) WHERE id = :quiz_id2";
+        $update_points_params = [
+            ':quiz_id1' => $quiz_id,
+            ':quiz_id2' => $quiz_id
+        ];
+        
+        secure_query($pdo, $update_points_query, $update_points_params);
+        
+        // Commit transaction
+        $pdo->commit();
+        
+        echo json_encode(['success' => true, 'question_id' => $question_id]);
+        exit;
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        // Delete uploaded image if question save failed
+        if ($image_path && file_exists($image_path)) {
+            unlink($image_path);
+        }
+        throw $e;
+    }
+    
+} elseif ($_POST['ajax_action'] === 'get_questions') {
             $quiz_id = filter_input(INPUT_POST, 'quiz_id', FILTER_VALIDATE_INT);
             
             if (!$quiz_id) {
@@ -194,174 +209,211 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             exit;
             
         } elseif ($_POST['ajax_action'] === 'update_question') {
-            $question_id = filter_input(INPUT_POST, 'question_id', FILTER_VALIDATE_INT);
-            $question_text = trim($_POST['question_text'] ?? '');
-            $points = filter_input(INPUT_POST, 'points', FILTER_VALIDATE_INT) ?: 1;
-            $options = json_decode($_POST['options'] ?? '[]', true);
-            $correct_option = filter_input(INPUT_POST, 'correct_option', FILTER_VALIDATE_INT);
-            
-            if (!$question_id) {
-                throw new Exception('Invalid question ID');
+    $question_id = filter_input(INPUT_POST, 'question_id', FILTER_VALIDATE_INT);
+    $question_text = trim($_POST['question_text'] ?? '');
+    $points = filter_input(INPUT_POST, 'points', FILTER_VALIDATE_INT) ?: 1;
+    $options = json_decode($_POST['options'] ?? '[]', true);
+    $correct_option = filter_input(INPUT_POST, 'correct_option', FILTER_VALIDATE_INT);
+    $remove_image = filter_input(INPUT_POST, 'remove_image', FILTER_VALIDATE_BOOLEAN) ?: false;
+    
+    if (!$question_id) {
+        throw new Exception('Invalid question ID');
+    }
+    
+    if (empty($question_text)) {
+        throw new Exception('Question text is required');
+    }
+    
+    if (count($options) < 2) {
+        throw new Exception('At least 2 options are required');
+    }
+    
+    if ($correct_option === null || $correct_option < 0 || $correct_option >= count($options)) {
+        throw new Exception('Please select a correct answer');
+    }
+    
+    // Start transaction
+    $pdo->beginTransaction();
+    
+    try {
+        // Verify question belongs to teacher's quiz
+        $check_query = "
+            SELECT qq.*, fq.id as quiz_id, qq.image_attached 
+            FROM quiz_questions qq
+            JOIN final_quizzes fq ON qq.quiz_id = fq.id
+            WHERE qq.id = :question_id AND fq.teacher_id = :teacher_id
+        ";
+        $check_params = [
+            ':question_id' => $question_id,
+            ':teacher_id' => $teacher_id
+        ];
+        
+        $check_result = secure_query($pdo, $check_query, $check_params);
+        
+        if ($check_result->rowCount() === 0) {
+            throw new Exception('You do not have permission to edit this question');
+        }
+        
+        $question = $check_result->fetch(PDO::FETCH_ASSOC);
+        $quiz_id = $question['quiz_id'];
+        $old_image = $question['image_attached'];
+        
+        // Handle image upload/removal
+        $image_path = $old_image; // Keep old image by default
+        
+        // Check if we need to remove the image
+        if ($remove_image) {
+            $image_path = null;
+            if ($old_image) {
+                deleteQuestionImage($old_image);
             }
-            
-            if (empty($question_text)) {
-                throw new Exception('Question text is required');
-            }
-            
-            if (count($options) < 2) {
-                throw new Exception('At least 2 options are required');
-            }
-            
-            if ($correct_option === null || $correct_option < 0 || $correct_option >= count($options)) {
-                throw new Exception('Please select a correct answer');
-            }
-            
-            // Start transaction
-            $pdo->beginTransaction();
-            
+        }
+        
+        // Check for new image upload
+        if (isset($_FILES['question_image']) && $_FILES['question_image']['error'] !== UPLOAD_ERR_NO_FILE) {
             try {
-                // Verify question belongs to teacher's quiz
-                $check_query = "
-                    SELECT qq.*, fq.id as quiz_id FROM quiz_questions qq
-                    JOIN final_quizzes fq ON qq.quiz_id = fq.id
-                    WHERE qq.id = :question_id AND fq.teacher_id = :teacher_id
-                ";
-                $check_params = [
-                    ':question_id' => $question_id,
-                    ':teacher_id' => $teacher_id
-                ];
-                
-                $check_result = secure_query($pdo, $check_query, $check_params);
-                
-                if ($check_result->rowCount() === 0) {
-                    throw new Exception('You do not have permission to edit this question');
+                // Upload new image
+                $image_path = handleImageUpload($_FILES['question_image']);
+                // Delete old image if exists
+                if ($old_image) {
+                    deleteQuestionImage($old_image);
                 }
-                
-                $question = $check_result->fetch(PDO::FETCH_ASSOC);
-                $quiz_id = $question['quiz_id'];
-                
-                // Update question
-                $update_query = "UPDATE quiz_questions SET question_text = :question_text, points = :points WHERE id = :id";
-                $update_params = [
-                    ':question_text' => $question_text,
-                    ':points' => $points,
-                    ':id' => $question_id
-                ];
-                
-                secure_query($pdo, $update_query, $update_params);
-                
-                // Delete old options
-                $delete_options_query = "DELETE FROM quiz_options WHERE question_id = :question_id";
-                $delete_options_params = [':question_id' => $question_id];
-                
-                secure_query($pdo, $delete_options_query, $delete_options_params);
-                
-                // Insert new options
-                foreach ($options as $index => $option_text) {
-                    $is_correct = ($index == $correct_option) ? 1 : 0;
-                    
-                    $option_query = "INSERT INTO quiz_options (question_id, option_text, is_correct, order_number) 
-                                     VALUES (:question_id, :option_text, :is_correct, :order_number)";
-                    $option_params = [
-                        ':question_id' => $question_id,
-                        ':option_text' => $option_text,
-                        ':is_correct' => $is_correct,
-                        ':order_number' => $index + 1
-                    ];
-                    
-                    secure_query($pdo, $option_query, $option_params);
-                }
-                
-                // Update total points in final_quizzes
-                $update_points_query = "UPDATE final_quizzes SET total_points = (
-                                            SELECT COALESCE(SUM(points), 0) FROM quiz_questions WHERE quiz_id = :quiz_id1
-                                        ) WHERE id = :quiz_id2";
-                $update_points_params = [
-                    ':quiz_id1' => $quiz_id,
-                    ':quiz_id2' => $quiz_id
-                ];
-                
-                secure_query($pdo, $update_points_query, $update_points_params);
-                
-                // Commit transaction
-                $pdo->commit();
-                
-                echo json_encode(['success' => true]);
-                exit;
-                
             } catch (Exception $e) {
-                $pdo->rollBack();
-                throw $e;
+                throw new Exception('Image upload failed: ' . $e->getMessage());
             }
+        }
+        
+        // Update question
+        $update_query = "UPDATE quiz_questions SET 
+                        question_text = :question_text, 
+                        points = :points,
+                        image_attached = :image_attached 
+                        WHERE id = :id";
+        $update_params = [
+            ':question_text' => $question_text,
+            ':points' => $points,
+            ':image_attached' => $image_path,
+            ':id' => $question_id
+        ];
+        
+        secure_query($pdo, $update_query, $update_params);
+        
+        // Delete old options
+        $delete_options_query = "DELETE FROM quiz_options WHERE question_id = :question_id";
+        $delete_options_params = [':question_id' => $question_id];
+        
+        secure_query($pdo, $delete_options_query, $delete_options_params);
+        
+        // Insert new options
+        foreach ($options as $index => $option_text) {
+            $is_correct = ($index == $correct_option) ? 1 : 0;
             
-        } elseif ($_POST['ajax_action'] === 'delete_question') {
-            $question_id = filter_input(INPUT_POST, 'question_id', FILTER_VALIDATE_INT);
+            $option_query = "INSERT INTO quiz_options (question_id, option_text, is_correct, order_number) 
+                             VALUES (:question_id, :option_text, :is_correct, :order_number)";
+            $option_params = [
+                ':question_id' => $question_id,
+                ':option_text' => $option_text,
+                ':is_correct' => $is_correct,
+                ':order_number' => $index + 1
+            ];
             
-            if (!$question_id) {
-                throw new Exception('Invalid question ID');
-            }
-            
-            // Start transaction
-            $pdo->beginTransaction();
-            
-            try {
-                // Get quiz_id before deletion and verify ownership
-                $check_query = "
-                    SELECT qq.quiz_id FROM quiz_questions qq
-                    JOIN final_quizzes fq ON qq.quiz_id = fq.id
-                    WHERE qq.id = :question_id AND fq.teacher_id = :teacher_id
-                ";
-                $check_params = [
-                    ':question_id' => $question_id,
-                    ':teacher_id' => $teacher_id
-                ];
-                $check_result = secure_query($pdo, $check_query, $check_params);
-                
-                if ($check_result->rowCount() === 0) {
-                    throw new Exception('You do not have permission to delete this question');
-                }
-                
-                $question = $check_result->fetch(PDO::FETCH_ASSOC);
-                $quiz_id = $question['quiz_id'];
-                
-                // Delete question (options will cascade)
-                $delete_query = "DELETE FROM quiz_questions WHERE id = :id";
-                $delete_params = [':id' => $question_id];
-                secure_query($pdo, $delete_query, $delete_params);
-                
-                // Update total points in final_quizzes
-                $update_points_query = "UPDATE final_quizzes SET total_points = (
-                                            SELECT COALESCE(SUM(points), 0) FROM quiz_questions WHERE quiz_id = :quiz_id1
-                                        ) WHERE id = :quiz_id2";
-                $update_points_params = [
-                    ':quiz_id1' => $quiz_id,
-                    ':quiz_id2' => $quiz_id
-                ];
-                secure_query($pdo, $update_points_query, $update_points_params);
-                
-                // Reorder remaining questions
-                $reorder_query = "
-                    UPDATE quiz_questions 
-                    SET order_number = (@rownum := @rownum + 1) 
-                    WHERE quiz_id = :quiz_id 
-                    ORDER BY order_number
-                ";
-                $pdo->exec("SET @rownum = 0");
-                $reorder_params = [':quiz_id' => $quiz_id];
-                secure_query($pdo, $reorder_query, $reorder_params);
-                
-                // Commit transaction
-                $pdo->commit();
-                
-                echo json_encode(['success' => true]);
-                exit;
-                
-            } catch (Exception $e) {
-                $pdo->rollBack();
-                throw $e;
-            }
-            
-        } elseif ($_POST['ajax_action'] === 'publish_quiz') {
+            secure_query($pdo, $option_query, $option_params);
+        }
+        
+        // Update total points in final_quizzes
+        $update_points_query = "UPDATE final_quizzes SET total_points = (
+                                    SELECT COALESCE(SUM(points), 0) FROM quiz_questions WHERE quiz_id = :quiz_id1
+                                ) WHERE id = :quiz_id2";
+        $update_points_params = [
+            ':quiz_id1' => $quiz_id,
+            ':quiz_id2' => $quiz_id
+        ];
+        
+        secure_query($pdo, $update_points_query, $update_points_params);
+        
+        // Commit transaction
+        $pdo->commit();
+        
+        echo json_encode(['success' => true]);
+        exit;
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+    
+} elseif ($_POST['ajax_action'] === 'delete_question') {
+    $question_id = filter_input(INPUT_POST, 'question_id', FILTER_VALIDATE_INT);
+    
+    if (!$question_id) {
+        throw new Exception('Invalid question ID');
+    }
+    
+    // Start transaction
+    $pdo->beginTransaction();
+    
+    try {
+        // Get image path before deletion
+        $image_query = "SELECT qq.image_attached, qq.quiz_id 
+                       FROM quiz_questions qq
+                       JOIN final_quizzes fq ON qq.quiz_id = fq.id
+                       WHERE qq.id = :question_id AND fq.teacher_id = :teacher_id";
+        $image_params = [
+            ':question_id' => $question_id,
+            ':teacher_id' => $teacher_id
+        ];
+        $image_result = secure_query($pdo, $image_query, $image_params);
+        
+        if ($image_result->rowCount() === 0) {
+            throw new Exception('You do not have permission to delete this question');
+        }
+        
+        $question_data = $image_result->fetch(PDO::FETCH_ASSOC);
+        $quiz_id = $question_data['quiz_id'];
+        $image_path = $question_data['image_attached'];
+        
+        // Delete question (options will cascade)
+        $delete_query = "DELETE FROM quiz_questions WHERE id = :id";
+        $delete_params = [':id' => $question_id];
+        secure_query($pdo, $delete_query, $delete_params);
+        
+        // Delete associated image if exists
+        if ($image_path) {
+            deleteQuestionImage($image_path);
+        }
+        
+        // Update total points in final_quizzes
+        $update_points_query = "UPDATE final_quizzes SET total_points = (
+                                    SELECT COALESCE(SUM(points), 0) FROM quiz_questions WHERE quiz_id = :quiz_id1
+                                ) WHERE id = :quiz_id2";
+        $update_points_params = [
+            ':quiz_id1' => $quiz_id,
+            ':quiz_id2' => $quiz_id
+        ];
+        secure_query($pdo, $update_points_query, $update_points_params);
+        
+        // Reorder remaining questions
+        $reorder_query = "
+            UPDATE quiz_questions 
+            SET order_number = (@rownum := @rownum + 1) 
+            WHERE quiz_id = :quiz_id 
+            ORDER BY order_number
+        ";
+        $pdo->exec("SET @rownum = 0");
+        $reorder_params = [':quiz_id' => $quiz_id];
+        secure_query($pdo, $reorder_query, $reorder_params);
+        
+        // Commit transaction
+        $pdo->commit();
+        
+        echo json_encode(['success' => true]);
+        exit;
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+}elseif ($_POST['ajax_action'] === 'publish_quiz') {
             $quiz_id = filter_input(INPUT_POST, 'quiz_id', FILTER_VALIDATE_INT);
             
             if (!$quiz_id) {
@@ -409,6 +461,57 @@ $quizzes_query = "
 $quizzes_params = [':teacher_id' => $teacher_id];
 $quizzes_result = secure_query($pdo, $quizzes_query, $quizzes_params);
 $quizzes = $quizzes_result->fetchAll(PDO::FETCH_ASSOC);
+
+// Handle image upload
+function handleImageUpload($file) {
+    if ($file['error'] === UPLOAD_ERR_NO_FILE) {
+        return null; // No file uploaded
+    }
+    
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        throw new Exception('Error uploading file: ' . $file['error']);
+    }
+    
+    // Validate file type
+    $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime_type = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    
+    if (!in_array($mime_type, $allowed_types)) {
+        throw new Exception('Only JPG, PNG, GIF, and WebP images are allowed');
+    }
+    
+    // Validate file size (max 5MB)
+    if ($file['size'] > 5 * 1024 * 1024) {
+        throw new Exception('Image size must be less than 5MB');
+    }
+    
+    // Create upload directory if it doesn't exist
+    $upload_dir = 'uploads/question_images/';
+    if (!file_exists($upload_dir)) {
+        mkdir($upload_dir, 0777, true);
+    }
+    
+    // Generate unique filename
+    $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $filename = uniqid() . '_' . time() . '.' . $extension;
+    $filepath = $upload_dir . $filename;
+    
+    // Move uploaded file
+    if (!move_uploaded_file($file['tmp_name'], $filepath)) {
+        throw new Exception('Failed to save uploaded file');
+    }
+    
+    return $filepath;
+}
+
+// Handle image deletion
+function deleteQuestionImage($image_path) {
+    if ($image_path && file_exists($image_path)) {
+        unlink($image_path);
+    }
+}
 
 ?>
 <!DOCTYPE html>
@@ -852,6 +955,44 @@ $quizzes = $quizzes_result->fetchAll(PDO::FETCH_ASSOC);
         justify-content: flex-start;
     }
 }
+
+/* Image upload styles */
+.image-upload-container {
+    margin-bottom: 10px;
+}
+
+#imagePreviewContainer {
+    margin-top: 10px;
+}
+
+#imagePreview {
+    border: 2px solid #dee2e6;
+    padding: 5px;
+    background: white;
+}
+
+#removeImageBtn {
+    transform: translate(50%, -50%);
+    font-size: 16px;
+    line-height: 1;
+}
+
+.question-image {
+    max-width: 100%;
+    max-height: 200px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 5px;
+}
+
+.question-item img {
+    max-width: 100%;
+    max-height: 150px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
     </style>
 </head>
 <body>
@@ -1014,40 +1155,56 @@ $quizzes = $quizzes_result->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         
                         <!-- Question Builder -->
-                        <div class="question-builder">
-                            <h6 class="mb-3">Add New Question</h6>
-                            <form id="questionForm">
-                                <input type="hidden" id="currentQuizId">
-                                <input type="hidden" id="editingQuestionId" value="">
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Question <span class="text-danger">*</span></label>
-                                    <textarea class="form-control" id="questionText" rows="2" required></textarea>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Points</label>
-                                        <input type="number" class="form-control" id="questionPoints" min="1" value="1">
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Options <span class="text-danger">*</span></label>
-                                    <div id="optionsContainer">
-                                        <!-- Options will be added here dynamically -->
-                                    </div>
-                                    <button type="button" class="add-option-btn" id="addOptionBtn">
-                                        <i class="bi bi-plus"></i> Add Option
-                                    </button>
-                                </div>
-                                
-                                <div class="text-end">
-                                    <button type="button" class="btn btn-secondary" id="cancelEditBtn" style="display: none;">Cancel Edit</button>
-                                    <button type="button" class="btn btn-primary" id="saveQuestionBtn">Add Question</button>
-                                </div>
-                            </form>
-                        </div>
+<div class="question-builder">
+    <h6 class="mb-3">Add New Question</h6>
+    <form id="questionForm" enctype="multipart/form-data">
+        <input type="hidden" id="currentQuizId">
+        <input type="hidden" id="editingQuestionId" value="">
+        
+        <div class="mb-3">
+            <label class="form-label">Question <span class="text-danger">*</span></label>
+            <textarea class="form-control" id="questionText" rows="2" required></textarea>
+        </div>
+        
+        <!-- Image Upload Field -->
+        <div class="mb-3">
+            <label class="form-label">Question Image (Optional)</label>
+            <div class="image-upload-container">
+                <input type="file" class="form-control" id="questionImage" accept="image/jpeg,image/png,image/gif,image/webp">
+                <small class="text-muted">Max file size: 5MB. Allowed: JPG, PNG, GIF, WebP</small>
+            </div>
+            <!-- Image Preview -->
+            <div id="imagePreviewContainer" class="mt-2" style="display: none;">
+                <div class="position-relative d-inline-block">
+                    <img id="imagePreview" src="#" alt="Preview" style="max-width: 200px; max-height: 150px; border-radius: 8px;">
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0" id="removeImageBtn" style="border-radius: 50%; padding: 2px 8px;">×</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Points</label>
+                <input type="number" class="form-control" id="questionPoints" min="1" value="1">
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Options <span class="text-danger">*</span></label>
+            <div id="optionsContainer">
+                <!-- Options will be added here dynamically -->
+            </div>
+            <button type="button" class="add-option-btn" id="addOptionBtn">
+                <i class="bi bi-plus"></i> Add Option
+            </button>
+        </div>
+        
+        <div class="text-end">
+            <button type="button" class="btn btn-secondary" id="cancelEditBtn" style="display: none;">Cancel Edit</button>
+            <button type="button" class="btn btn-primary" id="saveQuestionBtn">Add Question</button>
+        </div>
+    </form>
+</div>
                     </div>
                     <div class="modal-footer">
                         <span class="text-muted me-auto" id="totalPointsDisplay">Total Points: 0</span>
@@ -1343,41 +1500,46 @@ $quizzes = $quizzes_result->fetchAll(PDO::FETCH_ASSOC);
         }
         
         // Display questions
-        function displayQuestions(questions) {
-            const container = document.getElementById('questionsContainer');
-            
-            if (questions.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center">No questions yet. Add your first question above.</p>';
-                return;
-            }
-            
-            let html = '';
-            questions.forEach((question, index) => {
-                html += `
-                    <div class="question-item" id="question-${question.id}">
-                        <div class="question-number">${index + 1}</div>
-                        <div class="question-actions">
-                            <i class="bi bi-pencil edit-icon" onclick="editQuestion(${question.id})"></i>
-                            <i class="bi bi-trash delete-icon" onclick="deleteQuestion(${question.id})"></i>
-                        </div>
-                        <p class="fw-bold mb-2">${question.question_text}</p>
-                        <p class="text-muted small mb-2">Points: ${question.points}</p>
-                        <div class="ms-3">
-                            ${question.options.map(opt => `
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" disabled ${opt.is_correct ? 'checked' : ''}>
-                                    <label class="form-check-label ${opt.is_correct ? 'text-success fw-bold' : ''}">
-                                        ${opt.option_text}
-                                    </label>
-                                </div>
-                            `).join('')}
-                        </div>
+function displayQuestions(questions) {
+    const container = document.getElementById('questionsContainer');
+    
+    if (questions.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No questions yet. Add your first question above.</p>';
+        return;
+    }
+    
+    let html = '';
+    questions.forEach((question, index) => {
+        html += `
+            <div class="question-item" id="question-${question.id}">
+                <div class="question-number">${index + 1}</div>
+                <div class="question-actions">
+                    <i class="bi bi-pencil edit-icon" onclick="editQuestion(${question.id})"></i>
+                    <i class="bi bi-trash delete-icon" onclick="deleteQuestion(${question.id})"></i>
+                </div>
+                <p class="fw-bold mb-2">${question.question_text}</p>
+                ${question.image_attached ? `
+                    <div class="text-center">
+                        <img src="${question.image_attached}" alt="Question image" class="question-image">
                     </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
+                ` : ''}
+                <p class="text-muted small mb-2">Points: ${question.points}</p>
+                <div class="ms-3">
+                    ${question.options.map(opt => `
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" disabled ${opt.is_correct ? 'checked' : ''}>
+                            <label class="form-check-label ${opt.is_correct ? 'text-success fw-bold' : ''}">
+                                ${opt.option_text}
+                            </label>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
         
         // Update quiz summary
         function updateQuizSummary(quiz) {
@@ -1532,6 +1694,210 @@ $quizzes = $quizzes_result->fetchAll(PDO::FETCH_ASSOC);
             document.getElementById('cancelEditBtn').style.display = 'none';
             document.getElementById('saveQuestionBtn').textContent = 'Add Question';
         });
+
+        // Image preview handling
+document.getElementById('questionImage').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('imagePreview');
+            preview.src = e.target.result;
+            document.getElementById('imagePreviewContainer').style.display = 'block';
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+// Remove image button
+document.getElementById('removeImageBtn').addEventListener('click', function() {
+    document.getElementById('questionImage').value = '';
+    document.getElementById('imagePreviewContainer').style.display = 'none';
+    document.getElementById('imagePreview').src = '#';
+    
+    // If editing, mark for removal
+    if (document.getElementById('editingQuestionId').value) {
+        // You might want to add a hidden input to track removal
+        if (!document.getElementById('removeImageFlag')) {
+            const removeFlag = document.createElement('input');
+            removeFlag.type = 'hidden';
+            removeFlag.id = 'removeImageFlag';
+            removeFlag.name = 'remove_image';
+            removeFlag.value = '1';
+            document.getElementById('questionForm').appendChild(removeFlag);
+        }
+    }
+});
+
+// Update the saveQuestionBtn click handler to include FormData properly
+document.getElementById('saveQuestionBtn').addEventListener('click', function() {
+    const quizId = document.getElementById('currentQuizId').value;
+    const questionText = document.getElementById('questionText').value.trim();
+    const points = document.getElementById('questionPoints').value;
+    const editingId = document.getElementById('editingQuestionId').value;
+    const imageFile = document.getElementById('questionImage').files[0];
+    const removeImage = document.getElementById('removeImageFlag') ? '1' : '0';
+    
+    // Get options
+    const optionRows = document.querySelectorAll('#optionsContainer .option-row');
+    const options = [];
+    let correctOption = null;
+    
+    optionRows.forEach((row, index) => {
+        const textInput = row.querySelector('input[type="text"]');
+        const radio = row.querySelector('input[type="radio"]');
+        
+        if (textInput.value.trim()) {
+            options.push(textInput.value.trim());
+        }
+        
+        if (radio.checked) {
+            correctOption = index;
+        }
+    });
+    
+    // Validation
+    if (!questionText) {
+        showToast('Error', 'Please enter a question', true);
+        return;
+    }
+    
+    if (options.length < 2) {
+        showToast('Error', 'Please add at least 2 options', true);
+        return;
+    }
+    
+    if (correctOption === null) {
+        showToast('Error', 'Please select the correct answer', true);
+        return;
+    }
+    
+    // Create FormData object
+    const formData = new FormData();
+    formData.append('ajax_action', editingId ? 'update_question' : 'save_question');
+    formData.append('quiz_id', quizId);
+    formData.append('question_text', questionText);
+    formData.append('points', points);
+    formData.append('options', JSON.stringify(options));
+    formData.append('correct_option', correctOption);
+    
+    if (editingId) {
+        formData.append('question_id', editingId);
+    }
+    
+    if (removeImage === '1') {
+        formData.append('remove_image', '1');
+    }
+    
+    if (imageFile) {
+        formData.append('question_image', imageFile);
+    }
+    
+    fetch('ane.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Success', editingId ? 'Question updated!' : 'Question added!');
+            
+            // Reset form
+            document.getElementById('questionText').value = '';
+            document.getElementById('questionPoints').value = '1';
+            document.getElementById('questionImage').value = '';
+            document.getElementById('imagePreviewContainer').style.display = 'none';
+            document.getElementById('editingQuestionId').value = '';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+            document.getElementById('saveQuestionBtn').textContent = 'Add Question';
+            
+            // Remove remove image flag if exists
+            const removeFlag = document.getElementById('removeImageFlag');
+            if (removeFlag) {
+                removeFlag.remove();
+            }
+            
+            initializeOptions();
+            loadQuestions();
+        } else {
+            showToast('Error', data.error, true);
+            console.error('Server error:', data.error);
+        }
+    })
+    .catch(error => {
+        showToast('Error', 'An error occurred', true);
+        console.error('Fetch error:', error);
+    });
+});
+
+// Update editQuestion function to show existing image
+window.editQuestion = function(questionId) {
+    const formData = new FormData();
+    formData.append('ajax_action', 'get_questions');
+    formData.append('quiz_id', document.getElementById('currentQuizId').value);
+    
+    fetch('ane.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const question = data.questions.find(q => q.id == questionId);
+            if (question) {
+                document.getElementById('questionText').value = question.question_text;
+                document.getElementById('questionPoints').value = question.points;
+                document.getElementById('editingQuestionId').value = question.id;
+                document.getElementById('cancelEditBtn').style.display = 'inline-block';
+                document.getElementById('saveQuestionBtn').textContent = 'Update Question';
+                
+                // Clear any existing remove flag
+                const removeFlag = document.getElementById('removeImageFlag');
+                if (removeFlag) {
+                    removeFlag.remove();
+                }
+                
+                // Show existing image if any
+                if (question.image_attached) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = question.image_attached;
+                    document.getElementById('imagePreviewContainer').style.display = 'block';
+                } else {
+                    document.getElementById('imagePreviewContainer').style.display = 'none';
+                }
+                
+                // Load options
+                const container = document.getElementById('optionsContainer');
+                container.innerHTML = '';
+                
+                question.options.forEach((opt, index) => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'option-row';
+                    optionDiv.innerHTML = `
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="correctOption" value="${index}" ${opt.is_correct ? 'checked' : ''}>
+                        </div>
+                        <input type="text" class="form-control" value="${opt.option_text.replace(/"/g, '&quot;')}" required>
+                        <i class="bi bi-x-circle remove-option"></i>
+                    `;
+                    
+                    container.appendChild(optionDiv);
+                    
+                    optionDiv.querySelector('.remove-option').addEventListener('click', function() {
+                        if (container.children.length > 2) {
+                            optionDiv.remove();
+                            updateOptionNumbers();
+                        } else {
+                            showToast('Warning', 'At least 2 options are required', true);
+                        }
+                    });
+                });
+                
+                updateOptionNumbers();
+            }
+        }
+    });
+};
     </script>
 </body>
 </html>
