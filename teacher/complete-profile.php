@@ -9,7 +9,7 @@ if (!isset($_SESSION['google_id']) || !isset($_SESSION['email'])) {
 
 // Redirect if profile already complete
 if (isProfileComplete()) {
-    header('Location: dashboard');
+    header('Location: classroom');
     exit;
 }
 
