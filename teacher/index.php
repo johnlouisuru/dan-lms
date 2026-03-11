@@ -2,7 +2,7 @@
 require_once "db-config/security.php";
 
 // If already logged in and profile complete, redirect to dashboard
-if (isLoggedIn() && isProfileComplete()) {
+if (isLoggedIn() || isProfileComplete()) {
     header('Location: classroom');
     exit;
 }
