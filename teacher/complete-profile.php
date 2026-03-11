@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             
         } catch (PDOException $e) {
-            $error = 'An error occurred. Please try again.';
+            $error = 'An error occurred. Please try again.'.$e->getMessage();
         }
     }
 }
